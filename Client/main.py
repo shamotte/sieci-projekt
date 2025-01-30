@@ -23,13 +23,13 @@ def create_connection(ip_adres, port, client_id):
     return (write_socket,read_socket)
 
 
-def send_message(socket, recepiepient, message):
+def send_message(socket, recepiepient, message, client_id):
 
     data = {}
     data['to']= recepiepient
     data['content'] = message
     data['type'] = 'message'
-    data['from'] = str(socket)
+    data['from'] = client_id
 
     
     parsed_data = json.dumps(data)

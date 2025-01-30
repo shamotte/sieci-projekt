@@ -113,20 +113,21 @@ class ChatApp:
 
             if self.w_conn is not None:
                 try:
-                    threading.Thread(target=self._send_message, args=(message,), daemon=True).start()
+                    threading.Thread(target=self._send_message, args=(message, self.user_pid), daemon=True).start()
                 except Exception as e:
                     print(f"błąd: {e}")
             else:
                 print("Coś z połączeniem nie styka")
 
-    def _send_message(self, message):
+    def _send_message(self, message, user_pid):
         try:
             print(self.w_conn)
             print(self.recipient_pid)
             print(message)
-            main.send_message(self.w_conn, self.recipient_pid, message)
+            main.send_message(self.w_conn, self.recipient_pid, message, user_pid)
         except Exception as e:
             print(f"Error in _send_message: {e}")
+
 
     def receive_messages(self):
 
@@ -135,13 +136,13 @@ class ChatApp:
                 message = self.r_conn.recv(1000)
 
                 if message:
-                    # print(message)
+                    print(message)
                     message_str = message.decode("utf-8")
-                    # match = re.search(r'"from": ?"([^"]+)"', message_str)
                     message_dict = json.loads(message_str)
                     content = message_dict["content"]
+                    sender = message_dict["from"]
                     self.text_area.config(state=tk.NORMAL)
-                    self.text_area.insert(tk.END, f"{self.recipient_pid}: {content}\n")
+                    self.text_area.insert(tk.END, f"{sender}: {content}\n")
                     self.text_area.config(state=tk.DISABLED)
             except Exception as e:
                 print(f"Error receiving message: {e}")
