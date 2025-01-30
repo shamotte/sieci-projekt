@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import font, simpledialog
 import threading
 import main
+import json
+import re
 
 
 class ChatApp:
@@ -17,7 +19,7 @@ class ChatApp:
         self.user_pid = None
         self.recipient_pid = None
         self.available_pids = ['1560221111', '1560221112', '1560221113']
-
+        self.unread_messages = {}
         self.create_login_screen()
 
     def create_login_screen(self):
@@ -83,10 +85,13 @@ class ChatApp:
                                      bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button.pack(pady=10)
 
-        # threading.Thread(target=self.receive_messages, daemon=True).start()
-
+        threading.Thread(target=self.receive_messages, daemon=True).start()
+    # powiadomienie
     def add_contact_button(self, pid):
-        btn = tk.Button(self.contacts_frame, text=pid, font=self.custom_font, width=12, bg="#bfbfbf",
+        btn_text = pid
+        if pid in self.unread_messages and self.unread_messages[pid]:
+            btn_text += " 🔴"
+        btn = tk.Button(self.contacts_frame, text=btn_text, font=self.custom_font, width=12, bg="#bfbfbf",
                         command=lambda p=pid: self.select_recipient(p))
         btn.pack(pady=5, padx=5)
 
@@ -103,6 +108,19 @@ class ChatApp:
         self.text_area.delete(1.0, tk.END)
         self.text_area.config(state=tk.DISABLED)
 
+        # nieprzeczytane wiadomosci
+        if pid in self.unread_messages:
+            for msg in self.unread_messages[pid]:
+                self.text_area.config(state=tk.NORMAL)
+                self.text_area.insert(tk.END, f"{pid}: {msg}\n")
+            self.text_area.config(state=tk.DISABLED)
+            self.unread_messages[pid] = []
+
+        # usuwanie jak wyswietli user wiadomosc
+        for btn in self.contacts_frame.winfo_children():
+            if btn.cget("text").startswith(pid):
+                btn.config(text=pid)  #
+
     def send_message(self):
         message = self.entry.get()
         if message and self.recipient_pid:
@@ -113,30 +131,48 @@ class ChatApp:
 
             if self.w_conn is not None:
                 try:
-                    threading.Thread(target=self._send_message, args=(message,), daemon=True).start()
+                    threading.Thread(target=self._send_message, args=(message, self.user_pid), daemon=True).start()
                 except Exception as e:
                     print(f"błąd: {e}")
             else:
                 print("Coś z połączeniem nie styka")
 
-    def _send_message(self, message):
+    def _send_message(self, message, user_pid):
         try:
-            main.send_message(self.w_conn, self.recipient_pid, message)
+            main.send_message(self.w_conn, self.recipient_pid, message, user_pid)
         except Exception as e:
             print(f"Error in _send_message: {e}")
 
-    # def receive_messages(self):
-    #  to na potem
-    #     while True:
-    #         try:
-    #             message = main.receive_message(self.r_conn)
-    #             if message:
-    #                 # potem             self.text_area.config(state=tk.NORMAL)
-    #                 self.text_area.insert(tk.END, f"{self.recipient_pid}: {message}\n")
-    #                 self.text_area.config(state=tk.DISABLED)
-    #         except Exception as e:
-    #             print(f"Error receiving message: {e}")
-    #             break
+    def receive_messages(self):
+        while True:
+            try:
+                message = self.r_conn.recv(1000)
+
+                if message:
+                    message_str = message.decode("utf-8")
+                    message_dict = json.loads(message_str)
+                    content = message_dict["content"]
+                    sender = message_dict["from"]
+
+                    if sender != self.recipient_pid:
+                        if sender not in self.unread_messages:
+                            self.unread_messages[sender] = []
+                        self.unread_messages[sender].append(content)
+
+
+                        for btn in self.contacts_frame.winfo_children():
+                            if btn.cget("text").startswith(sender):
+                                btn.config(text=f"{sender} 🔴")
+                    else:
+
+                        self.text_area.config(state=tk.NORMAL)
+                        self.text_area.insert(tk.END, f"{sender}: {content}\n")
+                        self.text_area.config(state=tk.DISABLED)
+
+            except Exception as e:
+                print(f"Error receiving message: {e}")
+                break
+
 
 root = tk.Tk()
 app = ChatApp(root)
