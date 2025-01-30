@@ -42,7 +42,7 @@ class ChatApp:
             self.create_main_screen()
 
     def create_main_screen(self):
-        self.w_conn, self.r_conn = main.create_connection('192.168.1.31', 1234, self.user_pid)
+        self.w_conn, self.r_conn = main.create_connection('192.168.1.20', 1234, self.user_pid)
         self.main_frame = tk.Frame(self.root, bg="#f2f2f2")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 

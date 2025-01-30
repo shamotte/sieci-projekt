@@ -29,7 +29,7 @@ def send_message(socket, recepiepient, message):
     data['to']= recepiepient
     data['content'] = message
     data['type'] = 'message'
-    data['from'] = str(socket)
+    
 
     
     parsed_data = json.dumps(data)
