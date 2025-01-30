@@ -38,31 +38,25 @@ def send_message(socket, recepiepient, message):
 
 
 
-ws1,rs1 = create_connection('192.168.1.20',1234,'1560221111')
-
-ws2,rs2 = create_connection('192.168.1.20',1234,'1560221112')
-
-ws3,rs3 = create_connection('192.168.1.20',1234,'1560221113')
-
-
-
-
-
-
-
-
-
-
-send_message(ws1,'1560221112',"abecd")
-
-message = rs2.recv(1000);
-print(message)
-
-send_message(ws2,'1560221113',"wiadomosc")
-
-
-message = rs3.recv(1000);
-print(message)
+# ws1,rs1 = create_connection('192.168.1.31',1234,'1560221111')
+#
+# ws2,rs2 = create_connection('192.168.1.31',1234,'1560221112')
+#
+# ws3,rs3 = create_connection('192.168.1.31',1234,'1560221113')
+#
+#
+#
+#
+# send_message(ws1,'1560221112',"abecd")
+#
+# message = rs2.recv(1000);
+# print(message)
+#
+# send_message(ws2,'1560221113',"wiadomosc")
+#
+#
+# message = rs3.recv(1000);
+# print(message)
 
 
 
