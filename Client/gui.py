@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import font, simpledialog
 import threading
 import main
-
+import json
+import re
 
 class ChatApp:
     def __init__(self, root):
@@ -17,7 +18,6 @@ class ChatApp:
         self.user_pid = None
         self.recipient_pid = None
         self.available_pids = ['1560221111', '1560221112', '1560221113']
-
         self.create_login_screen()
 
     def create_login_screen(self):
@@ -83,7 +83,7 @@ class ChatApp:
                                      bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button.pack(pady=10)
 
-        # threading.Thread(target=self.receive_messages, daemon=True).start()
+        threading.Thread(target=self.receive_messages, daemon=True).start()
 
     def add_contact_button(self, pid):
         btn = tk.Button(self.contacts_frame, text=pid, font=self.custom_font, width=12, bg="#bfbfbf",
@@ -121,22 +121,31 @@ class ChatApp:
 
     def _send_message(self, message):
         try:
+            print(self.w_conn)
+            print(self.recipient_pid)
+            print(message)
             main.send_message(self.w_conn, self.recipient_pid, message)
         except Exception as e:
             print(f"Error in _send_message: {e}")
 
-    # def receive_messages(self):
-    #  to na potem
-    #     while True:
-    #         try:
-    #             message = main.receive_message(self.r_conn)
-    #             if message:
-    #                 # potem             self.text_area.config(state=tk.NORMAL)
-    #                 self.text_area.insert(tk.END, f"{self.recipient_pid}: {message}\n")
-    #                 self.text_area.config(state=tk.DISABLED)
-    #         except Exception as e:
-    #             print(f"Error receiving message: {e}")
-    #             break
+    def receive_messages(self):
+
+        while True:
+            try:
+                message = self.r_conn.recv(1000)
+
+                if message:
+                    # print(message)
+                    message_str = message.decode("utf-8")
+                    # match = re.search(r'"from": ?"([^"]+)"', message_str)
+                    message_dict = json.loads(message_str)
+                    content = message_dict["content"]
+                    self.text_area.config(state=tk.NORMAL)
+                    self.text_area.insert(tk.END, f"{self.recipient_pid}: {content}\n")
+                    self.text_area.config(state=tk.DISABLED)
+            except Exception as e:
+                print(f"Error receiving message: {e}")
+                break
 
 root = tk.Tk()
 app = ChatApp(root)
