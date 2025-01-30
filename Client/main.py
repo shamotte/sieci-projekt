@@ -6,9 +6,6 @@ import time
 import json
 
 
-
-
-
 def create_connection(ip_adres, port, client_id):
     write_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     write_socket.connect((ip_adres, port))
@@ -20,23 +17,20 @@ def create_connection(ip_adres, port, client_id):
     read_socket.connect((ip_adres, port))
     read_socket.send(str.encode(client_id))
     message = read_socket.recv(10)
-    return (write_socket,read_socket)
+    return (write_socket, read_socket)
 
 
 def send_message(socket, recepiepient, message, client_id):
-
     data = {}
-    data['to']= recepiepient
+    data['to'] = recepiepient
     data['content'] = message
     data['type'] = 'message'
     data['from'] = client_id
+    data['timestamp'] = time.time()
 
-    
     parsed_data = json.dumps(data)
 
     socket.send(str.encode(parsed_data))
-
-
 
 # ws1,rs1 = create_connection('192.168.1.31',1234,'1560221111')
 #
@@ -57,6 +51,5 @@ def send_message(socket, recepiepient, message, client_id):
 #
 # message = rs3.recv(1000);
 # print(message)
-
 
 

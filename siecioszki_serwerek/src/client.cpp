@@ -8,14 +8,21 @@ Client::Client(){};
 extern std::map<string,Client*> connected_clients;
 extern std::shared_mutex conected_mutex;
 extern string full_read_string(int fd, int size,int & status);
+extern void record_message_in_database(string client_id,string message);
+
 
 void send_message_to_client(string client_id, string message){
 
+      
       std::shared_lock lock(conected_mutex);
 
       Client *client = connected_clients[client_id];
 
-      client->post_message(message);
+
+      record_message_in_database(client_id,message);
+
+      if (client)
+            client->post_message(message);
 }
 
 
@@ -26,6 +33,8 @@ void Client::lunch_threads(){
       
       
       writer.detach();
+
+      printf("client %s has connected\n",client_id.c_str());
 
 }
 

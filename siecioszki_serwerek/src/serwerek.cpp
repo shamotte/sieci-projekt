@@ -2,16 +2,44 @@
 
 using std::string;
 
+std::map<string,Client*> clients_waiting_for_conection;
+std::mutex map_mutex;
+sqlite3 *db;
 
 string full_read_string(int fd, int size,int & status)
 {
    char * buffor = new char[size];
+   memset(buffor,0,size);
    
    
    status = read(fd,buffor,size);
    string s(buffor);
+   delete[] buffor;
 
    return s;
+}
+static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
+   int i;
+   for(i = 0; i<argc; i++) {
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+   }
+   printf("\n");
+   return 0;
+}
+
+void record_message_in_database(string client_id,string message){
+
+   string sql = "insert into messeges (client_id, message) values('"+client_id+"','"+message+"');";
+
+   char* errmsg;
+   int rc = sqlite3_exec(db,sql.c_str(),callback,0,&errmsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr,"sql error: %s\n",errmsg);
+      sqlite3_free(errmsg);
+   }else{
+      printf("record added succesfully\n");
+   }
+
 }
 
 
@@ -19,8 +47,7 @@ string full_read_string(int fd, int size,int & status)
 
 
 
-std::map<string,Client*> clients_waiting_for_conection;
-std::mutex map_mutex;
+
 
 
 std::map<string,Client*> connected_clients;
@@ -51,6 +78,14 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
          connected_clients.insert(std::pair(client_id,client));
          client->lunch_threads();
 
+
+         string statement = "insert into users (client_id) values('" + client_id + "');";
+         sqlite3_stmt * stmt;
+         sqlite3_prepare(db,statement.c_str(),-1,&stmt,NULL);
+         sqlite3_step(stmt);
+         sqlite3_finalize(stmt);
+         
+
          
 
       }
@@ -72,7 +107,7 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
 int main()
 {
 
-   sqlite3 *db;
+   
 
    int cannot_open_database = sqlite3_open_v2("serwer.db",&db,SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,NULL);
    if (cannot_open_database){
@@ -81,7 +116,23 @@ int main()
 
    }
 
-
+   const char * sql = "create table users( client_id char(10) primary key not null);";
+   const char *sql2 = "create table messeges( client_id char(10) not null, message char(1024) not null);";
+   char *errmsg;
+   int rc = sqlite3_exec(db,sql,callback,0,&errmsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr,"sql error: %s\n",errmsg);
+      sqlite3_free(errmsg);
+   }else{
+      printf("table created succesfully\n");
+   }
+   rc = sqlite3_exec(db,sql2,callback,0,&errmsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr,"sql error: %s\n",errmsg);
+      sqlite3_free(errmsg);
+   }else{
+      printf("table created succesfully\n");
+   }
 
 #pragma region network_initialization
 int sfd, cfd, on =1;
