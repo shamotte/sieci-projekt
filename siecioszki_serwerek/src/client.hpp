@@ -29,6 +29,8 @@ class Client{
 
    static void send_messages(Client *c);
 
+   void post_stored_messages();
+
 
 
 

@@ -8,8 +8,8 @@ sqlite3 *db;
 
 string full_read_string(int fd, int size,int & status)
 {
-   char * buffor = new char[size];
-   memset(buffor,0,size);
+   char * buffor = new char[size+1];
+   memset(buffor,0,size+1);
    
    
    status = read(fd,buffor,size);
@@ -67,6 +67,7 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
       
       if(clients_waiting_for_conection.find(client_id) != clients_waiting_for_conection.cend())
       {
+         printf("second time client\n");
          Client* client = clients_waiting_for_conection[client_id];
          client->write_file_descryptor = client_file_descryptor;
          clients_waiting_for_conection.erase(client_id);
@@ -75,7 +76,11 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
          
 
          std::unique_lock conected_lock(conected_mutex);
-         connected_clients.insert(std::pair(client_id,client));
+         if (connected_clients.find(client_id)!=connected_clients.cend())
+            connected_clients[client_id]= client;
+         else
+            connected_clients.insert(std::pair(client_id,client));
+         
          client->lunch_threads();
 
 
@@ -90,6 +95,7 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
 
       }
       else{
+         printf("first time client\n");
          write(client_file_descryptor,"OK",2);
          Client *c = new Client();
          c->client_id = client_id;

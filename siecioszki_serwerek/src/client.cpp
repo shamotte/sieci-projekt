@@ -9,6 +9,33 @@ extern std::map<string,Client*> connected_clients;
 extern std::shared_mutex conected_mutex;
 extern string full_read_string(int fd, int size,int & status);
 extern void record_message_in_database(string client_id,string message);
+extern sqlite3 *db;
+
+static int select_callback(void* data, int argc,char**argv,char ** azColName)
+{
+      printf("posting stored message to client\n");
+      Client *c = (Client*)data;
+      c->post_message(argv[0]);
+      return 0;
+      
+}
+
+void Client::post_stored_messages(){
+
+string select_sql = "select message from messeges where client_id like '"+client_id+"';";
+
+
+      char* errmsg;
+      int rc = sqlite3_exec(db,select_sql.c_str(),select_callback,(void*)this,&errmsg);
+      if(rc != SQLITE_OK){
+            fprintf(stderr,"sql error: %s\n",errmsg);
+            sqlite3_free(errmsg);
+      }else{
+            printf("record added succesfully\n");
+      }
+
+
+}
 
 
 void send_message_to_client(string client_id, string message){
@@ -31,10 +58,10 @@ void Client::lunch_threads(){
       reader.detach();
       writer = std::thread(Client::send_messages,this);
       
-      
-      writer.detach();
-
       printf("client %s has connected\n",client_id.c_str());
+      post_stored_messages();
+
+      
 
 }
 
@@ -50,18 +77,22 @@ void Client::listen_for_messages(Client *c){
       printf("josn: %s\n",x.c_str());
 
       if (status <= 0) break;
-      auto ms1 = json::parse(x);
+      auto message_json = json::parse(x);
 
-      std::cout<<std::endl<<std::endl<<ms1<<std::endl<<std::endl;
+      std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
 
-      string recepient = ms1.at("to");
+      string recepient = message_json.at("to");
       std::cout<<"recepient: "<<recepient<<std::endl;
+      string sender = message_json.at("from");
       
       send_message_to_client(recepient,x);
+      record_message_in_database(sender,x);
       
       
       }while(status > 0);
       printf("%s has closed connection", c->client_id.c_str());
+      connected_clients[c->client_id] = nullptr;
+        
 }
 
 void Client::post_message(string s){
@@ -82,7 +113,8 @@ void Client::send_messages(Client *c){
       {
       
       std::unique_lock lock(c->message_mutex);
-      c->has_meseges_to_send.wait(lock);
+      if(c->messages.size() < 1)
+            c->has_meseges_to_send.wait(lock);
       
       message = c->messages.front();
       c->messages.pop_front();
