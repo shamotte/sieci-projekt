@@ -50,18 +50,27 @@ class ChatApp:
                                   fg="#333")
         self.entry_pid.pack(pady=10, padx=20)
 
+        tk.Label(self.login_frame, text="Wpisz adres IP serwera", font=("Helvetica", 12), bg="#f2f2f2", fg="#333").pack(
+            pady=(10, 5))
+
+        self.entry_ip = tk.Entry(self.login_frame, font=self.custom_font, width=30, bd=2, relief="solid", bg="#fff",
+                                 fg="#333")
+        self.entry_ip.pack(pady=5, padx=20)
+
         tk.Button(self.login_frame, text="Zaloguj", font=self.custom_font, command=self.login, bg="#4CAF50", fg="white",
                   bd=0, relief="solid", padx=20, pady=10).pack(pady=10)
 
     def login(self):
         pid = self.entry_pid.get()
-        if pid:
+        ip = self.entry_ip.get()
+
+        if pid and ip:
             self.user_pid = pid
             self.login_frame.pack_forget()
-            self.create_main_screen()
+            self.create_main_screen(ip)
 
-    def create_main_screen(self):
-        self.w_conn, self.r_conn = main.create_connection('192.168.1.31', 1234, self.user_pid)
+    def create_main_screen(self, ip):
+        self.w_conn, self.r_conn = main.create_connection(ip, 1234, self.user_pid)
         self.main_frame = tk.Frame(self.root, bg="#f2f2f2")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -98,6 +107,8 @@ class ChatApp:
                               fg="#333")
         self.entry.pack(pady=10, padx=20)
 
+        # self.send_button = tk.Button(self.chat_frame, text=":-)", font=self.custom_font, command=self.send_message,
+        #                              bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button = tk.Button(self.chat_frame, text="Wyślij", font=self.custom_font, command=self.send_message,
                                      bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button.pack(pady=10)
