@@ -157,8 +157,12 @@ class ChatApp:
             self.unread_messages[pid] = []
 
         for btn in self.contacts_frame.winfo_children():
-            if btn.cget("text").startswith(pid):
-                btn.config(text=f"{nickname} ({pid})")
+            if btn.cget("text").startswith(nickname):
+
+                if not self.unread_messages.get(pid):
+                    btn.config(text=f"{nickname} ({pid})")
+                else:
+                    btn.config(text=f"{nickname} ({pid}) 🔴")
 
     def send_message(self):
         message = self.entry.get()
@@ -198,11 +202,12 @@ class ChatApp:
                     message_dict = json.loads(message_str)
                     content = message_dict["content"]
                     sender = message_dict["from"]
-                    nick = self.pid_to_nickname.get(sender)
+                    nick = self.pid_to_nickname.get(sender, sender)
                     timestamp = message_dict.get("timestamp", time.time())
                     formatted_time = format_timestamp(timestamp)
 
                     if sender == self.recipient_pid:
+
                         self.text_area.config(state=tk.NORMAL)
                         self.text_area.insert(tk.END, f"{nick} ({formatted_time}): {content}\n")
                         self.text_area.config(state=tk.DISABLED)
@@ -212,13 +217,19 @@ class ChatApp:
                         self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
 
                     else:
+
                         if sender not in self.unread_messages:
                             self.unread_messages[sender] = []
                         self.unread_messages[sender].append(f"{sender} ({formatted_time}): {content}")
+
+                        if sender not in self.chat_history:
+                            self.chat_history[sender] = []
                         self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
+
                         for btn in self.contacts_frame.winfo_children():
-                            if btn.cget("text").startswith(sender):
-                                btn.config(text=f"{sender} 🔴")
+                            if btn.cget("text").startswith(nick):
+                                if sender in self.unread_messages and self.unread_messages[sender]:
+                                    btn.config(text=f"{nick} ({sender}) 🔴")
 
             except Exception as e:
                 if self.running:
