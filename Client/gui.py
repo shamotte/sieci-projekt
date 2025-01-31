@@ -173,11 +173,11 @@ class ChatApp:
 
     def receive_messages(self):
         while self.running:
-            try:
-                message = self.r_conn.recv(1000)
-
+            #try:
+                message = main.full_receive_message(self.r_conn,1024)
+                print(message)
                 if message:
-                    message_str = message.decode("utf-8")
+                    message_str = message
                     message_dict = json.loads(message_str)
                     content = message_dict["content"]
                     sender = message_dict["from"]
@@ -191,22 +191,29 @@ class ChatApp:
 
                         if sender not in self.chat_history:
                             self.chat_history[sender] = []
-                        self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
+                        try:
+                            self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
+                        except:
+                            self.chat_history[sender] = []
+                            self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
 
                     else:
                         if sender not in self.unread_messages:
                             self.unread_messages[sender] = []
                         # self.unread_messages[sender].append(content)
                         self.unread_messages[sender].append(f"{sender} ({formatted_time}): {content}")
+                        if sender not in self.chat_history:
+                            self.chat_history[sender] = []
                         self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
+
                         for btn in self.contacts_frame.winfo_children():
                             if btn.cget("text").startswith(sender):
                                 btn.config(text=f"{sender} 🔴")
 
-            except Exception as e:
-                if self.running:
-                    print(f"Error receiving message: {e}")
-                break
+            #except Exception as e:
+            #    if self.running:
+            #        print(f"Error receiving message: {e}")
+            #    break
 
     def close_connection(self):
         try:

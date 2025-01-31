@@ -30,26 +30,24 @@ def send_message(socket, recepiepient, message, client_id):
 
     parsed_data = json.dumps(data)
 
-    socket.send(str.encode(parsed_data))
+    size = len(parsed_data)
+    if (size > 1024):
+        print("za długa wiadomosc")
+    else:
+        padded_message = parsed_data + ' ' *(1024-size)  
 
-# ws1,rs1 = create_connection('192.168.1.31',1234,'1560221111')
-#
-# ws2,rs2 = create_connection('192.168.1.31',1234,'1560221112')
-#
-# ws3,rs3 = create_connection('192.168.1.31',1234,'1560221113')
-#
-#
-#
-#
-# send_message(ws1,'1560221112',"abecd")
-#
-# message = rs2.recv(1000);
-# print(message)
-#
-# send_message(ws2,'1560221113',"wiadomosc")
-#
-#
-# message = rs3.recv(1000);
-# print(message)
+        socket.send(str.encode(padded_message))
+
+def full_receive_message(socket, size) -> str:
+    
+    message = ''
+    while(len(message)<1024):
+        bytes = socket.recv(1024 - len(message))
+        message += bytes.decode("utf-8")
+    
+    message = message.strip()
+    return message
+
+
 
 
