@@ -34,8 +34,12 @@ class ChatApp:
         self.unread_messages = {}
         self.running = True
         self.chat_history = {}
+        self.pid_to_nickname = {
+            '1560221111': 'asia',
+            '1560221112': 'zbysiu',
+            '1560221113': 'thomas.arrow'
+        }
         self.create_login_screen()
-
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_connection)
 
@@ -74,14 +78,14 @@ class ChatApp:
         self.main_frame = tk.Frame(self.root, bg="#f2f2f2")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.navbar = tk.Frame(self.main_frame, width=120, bg="#d9d9d9")
-        self.navbar.pack(side=tk.LEFT, fill=tk.Y)
+        self.navbar = tk.Frame(self.main_frame, width=200, bg="#d9d9d9")
+        self.navbar.pack(side=tk.LEFT, fill=tk.Y, expand=False)
 
         tk.Label(self.navbar, text="Kontakty", font=("Helvetica", 12, "bold"), bg="#d9d9d9").pack(pady=10)
 
-        self.contacts_frame = tk.Frame(self.navbar, bg="#d9d9d9")
-        self.contacts_frame.pack()
 
+        self.contacts_frame = tk.Frame(self.navbar, bg="#d9d9d9", width=200)
+        self.contacts_frame.pack(fill=tk.BOTH)
         for pid in self.available_pids:
             self.add_contact_button(pid)
 
@@ -107,8 +111,6 @@ class ChatApp:
                               fg="#333")
         self.entry.pack(pady=10, padx=20)
 
-        # self.send_button = tk.Button(self.chat_frame, text=":-)", font=self.custom_font, command=self.send_message,
-        #                              bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button = tk.Button(self.chat_frame, text="Wyślij", font=self.custom_font, command=self.send_message,
                                      bg="#4CAF50", fg="white", bd=0, relief="solid", padx=20, pady=10)
         self.send_button.pack(pady=10)
@@ -116,22 +118,32 @@ class ChatApp:
         threading.Thread(target=self.receive_messages, daemon=True).start()
 
     def add_contact_button(self, pid):
-        btn_text = pid
+        nickname = self.pid_to_nickname.get(pid, pid)
+        btn_text = f"{nickname} ({pid})"
         if pid in self.unread_messages and self.unread_messages[pid]:
             btn_text += " 🔴"
-        btn = tk.Button(self.contacts_frame, text=btn_text, font=self.custom_font, width=12, bg="#bfbfbf",
-                        command=lambda p=pid: self.select_recipient(p))
-        btn.pack(pady=5, padx=5)
+        btn = tk.Button(
+            self.contacts_frame,
+            text=btn_text,
+            font=self.custom_font,
+            anchor="w",
+            bg="#bfbfbf",
+            command=lambda p=pid: self.select_recipient(p)
+        )
+        btn.pack(pady=5, padx=5, fill=tk.X, expand=True)
 
     def add_contact(self):
         new_pid = simpledialog.askstring("Dodaj kontakt", "Wpisz PID nowego kontaktu:")
         if new_pid and new_pid not in self.available_pids:
+            new_nickname = simpledialog.askstring("Nick", f"Podaj nick dla {new_pid}:")
+            self.pid_to_nickname[new_pid] = new_nickname if new_nickname else new_pid
             self.available_pids.append(new_pid)
             self.add_contact_button(new_pid)
 
     def select_recipient(self, pid):
         self.recipient_pid = pid
-        self.title_label.config(text=f"Czat z {pid}")
+        nickname = self.pid_to_nickname.get(pid, pid)
+        self.title_label.config(text=f"Czat z {nickname}")
         self.text_area.config(state=tk.NORMAL)
         self.text_area.delete(1.0, tk.END)
 
@@ -142,16 +154,11 @@ class ChatApp:
         self.text_area.config(state=tk.DISABLED)
 
         if pid in self.unread_messages:
-            for msg in self.unread_messages[pid]:
-                self.text_area.config(state=tk.NORMAL)
-                # niepotrzebne juz bo historia dziala
-                # self.text_area.insert(tk.END, f"{msg}\n")
-            self.text_area.config(state=tk.DISABLED)
             self.unread_messages[pid] = []
 
         for btn in self.contacts_frame.winfo_children():
             if btn.cget("text").startswith(pid):
-                btn.config(text=pid)
+                btn.config(text=f"{nickname} ({pid})")
 
     def send_message(self):
         message = self.entry.get()
@@ -166,7 +173,6 @@ class ChatApp:
             if self.recipient_pid not in self.chat_history:
                 self.chat_history[self.recipient_pid] = []
             self.chat_history[self.recipient_pid].append(f"Ty ({formatted_time}): {message}")
-
 
             if self.w_conn is not None:
                 try:
@@ -192,12 +198,13 @@ class ChatApp:
                     message_dict = json.loads(message_str)
                     content = message_dict["content"]
                     sender = message_dict["from"]
+                    nick = self.pid_to_nickname.get(sender)
                     timestamp = message_dict.get("timestamp", time.time())
                     formatted_time = format_timestamp(timestamp)
 
                     if sender == self.recipient_pid:
                         self.text_area.config(state=tk.NORMAL)
-                        self.text_area.insert(tk.END, f"{sender} ({formatted_time}): {content}\n")
+                        self.text_area.insert(tk.END, f"{nick} ({formatted_time}): {content}\n")
                         self.text_area.config(state=tk.DISABLED)
 
                         if sender not in self.chat_history:
@@ -207,7 +214,6 @@ class ChatApp:
                     else:
                         if sender not in self.unread_messages:
                             self.unread_messages[sender] = []
-                        # self.unread_messages[sender].append(content)
                         self.unread_messages[sender].append(f"{sender} ({formatted_time}): {content}")
                         self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
                         for btn in self.contacts_frame.winfo_children():
