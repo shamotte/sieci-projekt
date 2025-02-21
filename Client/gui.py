@@ -118,6 +118,7 @@ class ChatApp:
         threading.Thread(target=self.receive_messages, daemon=True).start()
 
     def add_contact_button(self, pid):
+        # dodawanie nowego kontaktu do listy
         nickname = self.pid_to_nickname.get(pid, pid)
         btn_text = f"{nickname} ({pid})"
         if pid in self.unread_messages and self.unread_messages[pid]:
@@ -157,34 +158,33 @@ class ChatApp:
             self.unread_messages[pid] = []
 
         for btn in self.contacts_frame.winfo_children():
-            if btn.cget("text").startswith(nickname):
-
-                if not self.unread_messages.get(pid):
-                    btn.config(text=f"{nickname} ({pid})")
-                else:
+            btn_text = btn.cget("text")
+            if btn_text.startswith(nickname):
+                if pid in self.unread_messages and len(self.unread_messages[pid]) > 0:
                     btn.config(text=f"{nickname} ({pid}) 🔴")
+                else:
+                    btn.config(text=f"{nickname} ({pid})")
 
     def send_message(self):
         message = self.entry.get()
         if message and self.recipient_pid:
             timestamp = time.time()
             formatted_time = format_timestamp(timestamp)
+            formatted_message = f"Ty ({formatted_time}): {message}"
             self.text_area.config(state=tk.NORMAL)
-            self.text_area.insert(tk.END, f"Ty ({formatted_time}): {message}\n")
+            self.text_area.insert(tk.END, f"{formatted_message}\n")
             self.text_area.config(state=tk.DISABLED)
             self.entry.delete(0, tk.END)
 
             if self.recipient_pid not in self.chat_history:
                 self.chat_history[self.recipient_pid] = []
-            self.chat_history[self.recipient_pid].append(f"Ty ({formatted_time}): {message}")
+            self.chat_history[self.recipient_pid].append(formatted_message)
 
-            if self.w_conn is not None:
+            if self.w_conn:
                 try:
                     threading.Thread(target=self._send_message, args=(message, self.user_pid), daemon=True).start()
                 except Exception as e:
-                    print(f"błąd: {e}")
-            else:
-                print("Coś z połączeniem nie styka")
+                    print(f"Błąd wysyłania: {e}")
 
     def _send_message(self, message, user_pid):
         try:
@@ -195,45 +195,53 @@ class ChatApp:
     def receive_messages(self):
         while self.running:
             try:
-                message = self.r_conn.recv(1000)
+                message = self.r_conn.recv(1024)
+                if len(message) > 0:
+                    message_str = message.decode("utf-8").strip()
+                    if len(message_str) > 0:
+                        message_dict = json.loads(message_str)
+                        content = message_dict["content"]
+                        sender_pid = message_dict["from"]
+                        recipient_pid = message_dict["to"]
+                        timestamp = message_dict.get("timestamp", time.time())
+                        formatted_time = format_timestamp(timestamp)
 
-                if message:
-                    message_str = message.decode("utf-8")
-                    message_dict = json.loads(message_str)
-                    content = message_dict["content"]
-                    sender = message_dict["from"]
-                    nick = self.pid_to_nickname.get(sender, sender)
-                    timestamp = message_dict.get("timestamp", time.time())
-                    formatted_time = format_timestamp(timestamp)
+                        # dla wczytywania historii czatu: czy to wiadomość wysłana przez nas, czy kogoś innego
+                        is_our_message = sender_pid == self.user_pid
 
-                    if sender == self.recipient_pid:
+                        if is_our_message:
+                            target_pid = recipient_pid  # wiadomość wysłana przez nas
+                            display_name = "Ty"
+                        else:
+                            target_pid = sender_pid  # wiadomość odebrana
+                            display_name = self.pid_to_nickname.get(sender_pid, sender_pid)
 
-                        self.text_area.config(state=tk.NORMAL)
-                        self.text_area.insert(tk.END, f"{nick} ({formatted_time}): {content}\n")
-                        self.text_area.config(state=tk.DISABLED)
+                        # handlowanie historii czatu
+                        if target_pid not in self.chat_history:
+                            self.chat_history[target_pid] = []
 
-                        if sender not in self.chat_history:
-                            self.chat_history[sender] = []
-                        self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
+                        formatted_message = f"{display_name} ({formatted_time}): {content}"
+                        self.chat_history[target_pid].append(formatted_message)
 
-                    else:
+                        # czat dla konkretnego wybranego recipienta
+                        if target_pid == self.recipient_pid:
+                            self.text_area.config(state=tk.NORMAL)
+                            self.text_area.insert(tk.END, f"{formatted_message}\n")
+                            self.text_area.config(state=tk.DISABLED)
+                        else:
+                            # powiadomienia o nieprzeczytanej wiadomości
+                            if target_pid not in self.unread_messages:
+                                self.unread_messages[target_pid] = []
+                            self.unread_messages[target_pid].append(formatted_message)
 
-                        if sender not in self.unread_messages:
-                            self.unread_messages[sender] = []
-                        self.unread_messages[sender].append(f"{sender} ({formatted_time}): {content}")
-
-                        if sender not in self.chat_history:
-                            self.chat_history[sender] = []
-                        self.chat_history[sender].append(f"{sender} ({formatted_time}): {content}")
-
-                        for btn in self.contacts_frame.winfo_children():
-                            if btn.cget("text").startswith(nick):
-                                if sender in self.unread_messages and self.unread_messages[sender]:
-                                    btn.config(text=f"{nick} ({sender}) 🔴")
+                            nickname = self.pid_to_nickname.get(target_pid, target_pid)
+                            for btn in self.contacts_frame.winfo_children():
+                                if btn.cget("text").startswith(nickname):
+                                    btn.config(text=f"{nickname} ({target_pid}) 🔴")
 
             except Exception as e:
                 if self.running:
-                    print(f"Error receiving message: {e}")
+                    print(f"Błąd odbierania wiadomości: {e}")
                 break
 
     def close_connection(self):
