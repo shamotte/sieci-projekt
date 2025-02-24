@@ -8,32 +8,41 @@ Client::Client(){};
 extern std::map<string,Client*> connected_clients;
 extern std::shared_mutex conected_mutex;
 extern string full_read_string(int fd, int size,int & status);
-extern void record_message_in_database(string client_id,string message);
+extern void record_message_in_database(string client_id,string message,bool seen =1);
 extern sqlite3 *db;
 
 static int select_callback(void* data, int argc,char**argv,char ** azColName)
 {
       printf("posting stored message to client\n");
       Client *c = (Client*)data;
-      c->post_message(argv[0]);
+      
+      string message(argv[0]);
+      message[9]= argv[1][0];
+      c->post_message(message.c_str());
       return 0;
       
+}
+static int update_callback(void* data,int argc,char ** argv,char ** colName){
+      return 0;
 }
 
 void Client::post_stored_messages(){
 
-string select_sql = "select message from messeges where client_id like '"+client_id+"';";
+      string select_sql = "select message,seen from messeges where client_id like '"+client_id+"';";
+      string update_sql = "update messeges set seen = '1' where client_id like '"+client_id+"';";
 
 
       char* errmsg;
       int rc = sqlite3_exec(db,select_sql.c_str(),select_callback,(void*)this,&errmsg);
+     
+      rc = sqlite3_exec(db,update_sql.c_str(),update_callback,(void*)this,&errmsg);
       if(rc != SQLITE_OK){
             fprintf(stderr,"sql error: %s\n",errmsg);
             sqlite3_free(errmsg);
       }else{
-            printf("record added succesfully\n");
+            printf("record updated succesfully\n");
       }
-
+      
 
 }
 
@@ -46,7 +55,7 @@ void send_message_to_client(string client_id, string message){
       Client *client = connected_clients[client_id];
 
 
-      record_message_in_database(client_id,message);
+      record_message_in_database(client_id,message, client?true:false);
 
       if (client)
             client->post_message(message);

@@ -27,9 +27,9 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 
-void record_message_in_database(string client_id,string message){
+void record_message_in_database(string client_id,string message, bool seen =0){
 
-   string sql = "insert into messeges (client_id, message) values('"+client_id+"','"+message+"');";
+   string sql = "insert into messeges (client_id, message,seen) values('"+client_id+"','"+message+"','" + (seen?"0":"1") +"');";
 
    char* errmsg;
    int rc = sqlite3_exec(db,sql.c_str(),callback,0,&errmsg);
@@ -123,7 +123,7 @@ int main()
    }
 
    const char * sql = "create table users( client_id char(10) primary key not null);";
-   const char *sql2 = "create table messeges( client_id char(10) not null, message char(1024) not null);";
+   const char *sql2 = "create table messeges( client_id char(10) not null, message char(1024) not null ,seen char(1) not null);";
    char *errmsg;
    int rc = sqlite3_exec(db,sql,callback,0,&errmsg);
    if(rc != SQLITE_OK){
