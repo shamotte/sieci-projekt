@@ -22,6 +22,7 @@ def create_connection(ip_adres, port, client_id):
 
 def send_message(socket, recepiepient, message, client_id):
     data = {}
+    data['seen'] = 0
     data['to'] = recepiepient
     data['content'] = message
     data['type'] = 'message'
