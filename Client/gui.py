@@ -39,8 +39,11 @@ class ChatApp:
             '1560221112': 'zbysiu',
             '1560221113': 'thomas.arrow'
         }
+        try:
+            self.edit_icon = tk.PhotoImage(file='edit.png').subsample(15, 15)
+        except:
+            self.edit_icon = None
         self.create_login_screen()
-
         self.root.protocol("WM_DELETE_WINDOW", self.close_connection)
 
     def create_login_screen(self):
@@ -83,26 +86,39 @@ class ChatApp:
 
         tk.Label(self.navbar, text="Kontakty", font=("Helvetica", 12, "bold"), bg="#d9d9d9").pack(pady=10)
 
-
         self.contacts_frame = tk.Frame(self.navbar, bg="#d9d9d9", width=200)
         self.contacts_frame.pack(fill=tk.BOTH)
         for pid in self.available_pids:
             self.add_contact_button(pid)
 
-        tk.Button(self.navbar, text="Dodaj", font=self.custom_font, command=self.add_contact, bg="#4CAF50", fg="white",
+        tk.Button(self.navbar, text="Dodaj", font=self.custom_font, command=self.add_contact, bg="#4CAF50",
+                  fg="white",
                   bd=0, relief="solid", padx=10, pady=5).pack(pady=5)
 
         self.chat_frame = tk.Frame(self.main_frame, bg="#f2f2f2")
         self.chat_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        self.program_title = tk.Label(self.chat_frame, text="⭐ Yapu Yapu 呀普呀普 ⭐", font=("Helvetica", 16, "bold"),
+        self.program_title = tk.Label(self.chat_frame, text="Yapu Yapu :)", font=("Helvetica", 16, "bold"),
                                       bg="#f2f2f2", fg="#333")
         self.program_title.pack(pady=(10, 5))
 
-        self.title_label = tk.Label(self.chat_frame, text="Wybierz odbiorcę", font=("Helvetica", 14, "bold"),
-                                    bg="#f2f2f2", fg="#333")
-        self.title_label.pack(pady=(10, 10))
+        title_frame = tk.Frame(self.chat_frame, bg="#f2f2f2")
+        title_frame.pack(pady=(10, 10))
 
+        self.title_label = tk.Label(title_frame, text="Wybierz odbiorcę",
+                                    font=("Helvetica", 14, "bold"),
+                                    bg="#f2f2f2", fg="#333")
+        self.title_label.pack(side=tk.LEFT)
+
+        self.change_nick_btn = tk.Button(title_frame,
+                                         image=self.edit_icon,
+                                         command=self.change_nickname,
+                                         bg="#f2f2f2",
+                                         activebackground="#f2f2f2",
+                                         bd=0,
+                                         relief="flat")
+        self.change_nick_btn.pack(side=tk.LEFT, padx=10)
+        self.change_nick_btn.pack_forget()
         self.text_area = tk.Text(self.chat_frame, height=15, width=40, font=self.custom_font, bg="#e6e6e6", fg="#333",
                                  state=tk.DISABLED, wrap=tk.WORD)
         self.text_area.pack(pady=10, padx=10)
@@ -117,6 +133,20 @@ class ChatApp:
 
         threading.Thread(target=self.receive_messages, daemon=True).start()
 
+    def change_nickname(self):
+        if self.recipient_pid:
+            new_nick = simpledialog.askstring("Zmień nick", "Wpisz nowy nick:")
+            if new_nick:
+                self.pid_to_nickname[self.recipient_pid] = new_nick
+
+                # zmiana w tytule
+                self.title_label.config(text=f"Czat z {new_nick}")
+
+                # zmiana w liscie kontaktow
+                for widget in self.contacts_frame.winfo_children():
+                    widget.destroy()
+                for pid in self.available_pids:
+                    self.add_contact_button(pid)
     def add_contact_button(self, pid):
         # dodawanie nowego kontaktu do listy
         nickname = self.pid_to_nickname.get(pid, pid)
@@ -145,6 +175,7 @@ class ChatApp:
         self.recipient_pid = pid
         nickname = self.pid_to_nickname.get(pid, pid)
         self.title_label.config(text=f"Czat z {nickname}")
+        self.change_nick_btn.pack(side=tk.LEFT, padx=10)
         self.text_area.config(state=tk.NORMAL)
         self.text_area.delete(1.0, tk.END)
 
@@ -203,12 +234,12 @@ class ChatApp:
                         content = message_dict["content"]
                         sender_pid = message_dict["from"]
                         recipient_pid = message_dict["to"]
+                        seen = message_dict['seen']
                         timestamp = message_dict.get("timestamp", time.time())
                         formatted_time = format_timestamp(timestamp)
 
                         # dla wczytywania historii czatu: czy to wiadomość wysłana przez nas, czy kogoś innego
                         is_our_message = sender_pid == self.user_pid
-
                         if is_our_message:
                             target_pid = recipient_pid  # wiadomość wysłana przez nas
                             display_name = "Ty"
@@ -230,14 +261,15 @@ class ChatApp:
                             self.text_area.config(state=tk.DISABLED)
                         else:
                             # powiadomienia o nieprzeczytanej wiadomości
-                            if target_pid not in self.unread_messages:
+                            if target_pid not in self.unread_messages:\
                                 self.unread_messages[target_pid] = []
                             self.unread_messages[target_pid].append(formatted_message)
 
                             nickname = self.pid_to_nickname.get(target_pid, target_pid)
-                            for btn in self.contacts_frame.winfo_children():
-                                if btn.cget("text").startswith(nickname):
-                                    btn.config(text=f"{nickname} ({target_pid}) 🔴")
+                            if seen == 0:
+                                for btn in self.contacts_frame.winfo_children():
+                                    if btn.cget("text").startswith(nickname):
+                                        btn.config(text=f"{nickname} ({target_pid}) 🔴")
 
             except Exception as e:
                 if self.running:
