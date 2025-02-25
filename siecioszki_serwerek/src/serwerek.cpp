@@ -29,7 +29,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 
 void record_message_in_database(string client_id,string message, bool seen =0){
 
-   string sql = "insert into messeges (client_id, message,seen) values('"+client_id+"','"+message+"','" + (seen?"0":"1") +"');";
+   string sql = "insert into messeges (client_id, message,seen) values('"+client_id+"','"+message+"','" + (seen?"1":"0") +"');";
 
    char* errmsg;
    int rc = sqlite3_exec(db,sql.c_str(),callback,0,&errmsg);

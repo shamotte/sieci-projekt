@@ -13,11 +13,12 @@ extern sqlite3 *db;
 
 static int select_callback(void* data, int argc,char**argv,char ** azColName)
 {
-      printf("posting stored message to client\n");
+      
       Client *c = (Client*)data;
       
       string message(argv[0]);
       message[9]= argv[1][0];
+      printf("%s\n",message.c_str());
       c->post_message(message.c_str());
       return 0;
       
@@ -83,7 +84,7 @@ void Client::listen_for_messages(Client *c){
       
       x = full_read_string(c->read_file_descryptor,PACKET_SIZE,status);
       
-      printf("josn: %s\n",x.c_str());
+      
 
       if (status <= 0) break;
       auto message_json = json::parse(x);
@@ -91,7 +92,6 @@ void Client::listen_for_messages(Client *c){
       std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
 
       string recepient = message_json.at("to");
-      std::cout<<"recepient: "<<recepient<<std::endl;
       string sender = message_json.at("from");
       
       send_message_to_client(recepient,x);
