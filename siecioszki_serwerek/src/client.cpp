@@ -18,7 +18,6 @@ static int select_callback(void* data, int argc,char**argv,char ** azColName)
       
       string message(argv[0]);
       message[9]= argv[1][0];
-      printf("%s\n",message.c_str());
       c->post_message(message.c_str());
       return 0;
       
@@ -40,8 +39,6 @@ void Client::post_stored_messages(){
       if(rc != SQLITE_OK){
             fprintf(stderr,"sql error: %s\n",errmsg);
             sqlite3_free(errmsg);
-      }else{
-            printf("record updated succesfully\n");
       }
       
 
@@ -89,7 +86,7 @@ void Client::listen_for_messages(Client *c){
       if (status <= 0) break;
       auto message_json = json::parse(x);
 
-      std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
+      //std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
 
       string recepient = message_json.at("to");
       string sender = message_json.at("from");

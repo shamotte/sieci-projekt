@@ -36,8 +36,6 @@ void record_message_in_database(string client_id,string message, bool seen =0){
    if(rc != SQLITE_OK){
       fprintf(stderr,"sql error: %s\n",errmsg);
       sqlite3_free(errmsg);
-   }else{
-      printf("record added succesfully\n");
    }
 
 }
@@ -161,8 +159,10 @@ sizeof(on));
       std::shared_ptr<sockaddr_in> connection_data =std::make_shared<sockaddr_in>();
       cfd = accept(sfd, (struct sockaddr *)connection_data.get(), &sl);
 
+      std::thread thread(handle_connection,cfd,connection_data);
+      thread.detach();
+
       
-      handle_connection(cfd,connection_data);
       
       
  }
