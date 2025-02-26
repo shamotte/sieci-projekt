@@ -88,7 +88,7 @@ void Client::listen_for_messages(Client *c){
       if (status <= 0) break;
       auto message_json = json::parse(x);
 
-      //std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
+      std::cout<<std::endl<<std::endl<<message_json<<std::endl<<std::endl;
 
       string recepient = message_json.at("to");
       string sender = message_json.at("from");
