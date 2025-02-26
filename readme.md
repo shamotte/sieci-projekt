@@ -44,13 +44,12 @@ Aplikacja wymaga następujących bibliotek:
 - `datetime`
 
 ### Wymagane biblioteki do serwera
-- `sqlite3`
+- `gcc` (```sudo zypper install gcc-c++```)
+- `sqlite3` (```sudo zypper install sqlite3-devel```)
+  
 ## 🔨 Kompilacja
 
 - **Skrypt do kompilacji serwera** - znajduje się w pliku ```build.sh```
-
-- **Konieczne jest** wcześniejsze posiadanie biblioteki sqlite3
-```sudo zypper install sqlite3-devel ```
 
 - **Uruchomienie serwera:**  ```./serwer```
 
