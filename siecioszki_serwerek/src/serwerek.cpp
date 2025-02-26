@@ -138,7 +138,6 @@ int main()
       printf("table created succesfully\n");
    }
 
-#pragma region network_initialization
 int sfd, cfd, on =1;
 socklen_t sl;
 struct sockaddr_in saddr, caddr;
@@ -149,8 +148,8 @@ saddr.sin_port = htons(1234);
 sfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, (char*)&on,
 sizeof(on));
-
-#pragma endregion
+//int mss = 1024;
+//setsockopt(sfd, IPPROTO_TCP, TCP_MAXSEG, &mss, sizeof(mss));
 
    bind(sfd, (struct sockaddr*) &saddr, sizeof(saddr));
    listen(sfd, 10);

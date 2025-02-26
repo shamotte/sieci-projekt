@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
