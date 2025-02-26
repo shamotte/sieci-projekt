@@ -1,4 +1,5 @@
 #include "includes.hpp"
+#include "client.hpp"
 
 using std::string;
 
@@ -18,6 +19,20 @@ string full_read_string(int fd, int size,int & status)
 
    return s;
 }
+string ssl_full_read_string(SSL * ssl, int size,int & status)
+{
+   char * buffor = new char[size+1];
+   memset(buffor,0,size+1);
+   
+   
+   status = SSL_read(ssl,buffor,size);
+   string s(buffor);
+   delete[] buffor;
+
+   return s;
+}
+
+
 static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    int i;
    for(i = 0; i<argc; i++) {
@@ -51,7 +66,7 @@ void record_message_in_database(string client_id,string message, bool seen =0){
 std::map<string,Client*> connected_clients;
 std::shared_mutex conected_mutex;
 
-void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> connection_data){ 
+void handle_connection(int client_file_descryptor,SSL * ssl,std::shared_ptr<sockaddr_in> connection_data){ 
      
       int x;
       string client_id = full_read_string(client_file_descryptor,10,x);
@@ -68,9 +83,10 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
          printf("second time client\n");
          Client* client = clients_waiting_for_conection[client_id];
          client->write_file_descryptor = client_file_descryptor;
+         client-> ssl_write_descryptor = ssl;
          clients_waiting_for_conection.erase(client_id);
 
-         write(client_file_descryptor,"CONNECTED",9);
+         SSL_write(ssl,"CONNECTED",9);
          
 
          std::unique_lock conected_lock(conected_mutex);
@@ -94,10 +110,11 @@ void handle_connection(int client_file_descryptor,std::shared_ptr<sockaddr_in> c
       }
       else{
          printf("first time client\n");
-         write(client_file_descryptor,"OK",2);
+         SSL_write(ssl,"OK",2);
          Client *c = new Client();
          c->client_id = client_id;
          c->read_file_descryptor = client_file_descryptor;
+         c->ssl_read_descryptor = ssl;
          clients_waiting_for_conection.insert(std::pair<string,Client*>(client_id,c));
       }
       }
@@ -139,6 +156,19 @@ int main()
    }
 
 #pragma region network_initialization
+
+SSL_load_error_strings();
+SSL_library_init();
+
+SSL_CTX* ctx;
+SSL * ssl;
+
+ctx = SSL_CTX_new(TLS_server_method());
+
+SSL_CTX_use_certificate_file(ctx,"server.crt",SSL_FILETYPE_PEM);
+SSL_CTX_use_PrivateKey_file(ctx,"server.key",SSL_FILETYPE_PEM);
+
+
 int sfd, cfd, on =1;
 socklen_t sl;
 struct sockaddr_in saddr, caddr;
@@ -158,8 +188,11 @@ sizeof(on));
       sl = sizeof(caddr);
       std::shared_ptr<sockaddr_in> connection_data =std::make_shared<sockaddr_in>();
       cfd = accept(sfd, (struct sockaddr *)connection_data.get(), &sl);
+      ssl = SSL_new(ctx);
+      SSL_set_fd(ssl,cfd);
+      SSL_accept(ssl);
 
-      std::thread thread(handle_connection,cfd,connection_data);
+      std::thread thread(handle_connection,cfd,ssl,connection_data);
       thread.detach();
 
       

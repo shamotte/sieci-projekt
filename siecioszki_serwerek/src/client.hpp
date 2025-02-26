@@ -3,6 +3,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <includes.hpp>
 using std::string;
 
 class Client{
@@ -10,6 +11,9 @@ class Client{
    std::string client_id;
    int read_file_descryptor;
    int write_file_descryptor;
+
+   SSL * ssl_write_descryptor;
+   SSL * ssl_read_descryptor;
 
    std::mutex message_mutex;
    std::list<string> messages;

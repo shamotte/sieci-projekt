@@ -1,5 +1,5 @@
 
-#include "includes.hpp"
+#include "client.hpp"
 
 
 Client::Client(){};
@@ -8,6 +8,8 @@ Client::Client(){};
 extern std::map<string,Client*> connected_clients;
 extern std::shared_mutex conected_mutex;
 extern string full_read_string(int fd, int size,int & status);
+extern string ssl_full_read_string(SSL * ssl, int size,int & status);
+
 extern void record_message_in_database(string client_id,string message,bool seen =1);
 extern sqlite3 *db;
 
@@ -79,7 +81,7 @@ void Client::listen_for_messages(Client *c){
       int status;
       do{
       
-      x = full_read_string(c->read_file_descryptor,PACKET_SIZE,status);
+      x = ssl_full_read_string(c->ssl_read_descryptor,PACKET_SIZE,status);
       
       
 
@@ -125,8 +127,8 @@ void Client::send_messages(Client *c){
       message = c->messages.front();
       c->messages.pop_front();
       }
-      write(c->write_file_descryptor,message.c_str(),message.size());
-
+       //write(c->write_file_descryptor,message.c_str(),message.size());
+       SSL_write(c->ssl_write_descryptor,message.c_str(),message.size());     
 
       }
 }

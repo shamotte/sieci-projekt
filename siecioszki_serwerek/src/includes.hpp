@@ -17,11 +17,14 @@
 #include <shared_mutex>
 #include <mutex>
 #include <list>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 using json = nlohmann::json;
 
 
 
-#include "client.hpp"
+
 
 using std::string;
 
