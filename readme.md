@@ -9,7 +9,6 @@ Aplikacja pozwala użytkownikom wysyłać i odbierać wiadomości od wielu osób
 
 - **C++** – główny język programowania dla serwera,
 - **SQLite** – baza danych do przechowywania wiadomości i użytkowników,
-- **SSL/TLS** – szyfrowanie połączenia klient-serwer.
 - **Python** – w nim napisany jest klient komunikatora.
 
 ## 📁 Struktura projektu
@@ -63,7 +62,6 @@ Każdy klient łączy się dwoma gniazdami – jedno do wysyłania, drugie do od
 
 - Obsługa wielu klientów jednocześnie,
 - Przekazywanie wiadomości, nawet gdy użytkownik był offline,
- - Szyfrowanie komunikacji za pomocą SSL/TLS,
 
  - Przechowywanie wiadomości w bazie SQLite
  ...
