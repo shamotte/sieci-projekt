@@ -56,7 +56,7 @@ Aplikacja wymaga następujących bibliotek:
 
 
 ## Serwer
-Serwer obsługuje połączenia TCP zabezpieczone przez SSL/TLS.
+Serwer obsługuje połączenia TCP.
 Każdy klient łączy się dwoma gniazdami – jedno do wysyłania, drugie do odbierania wiadomości. 
 ### Funkcje serwera
 
