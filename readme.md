@@ -62,9 +62,7 @@ Każdy klient łączy się dwoma gniazdami – jedno do wysyłania, drugie do od
 
 - Obsługa wielu klientów jednocześnie,
 - Przekazywanie wiadomości, nawet gdy użytkownik był offline,
-
- - Przechowywanie wiadomości w bazie SQLite
- ...
+- Przechowywanie wiadomości w bazie SQLite
 
 
 
